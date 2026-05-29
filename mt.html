@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulador de Máquina de Turing - Contador Binario</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0e1a;
+        --card: #131a2e;
+        --txt: #c8d6e5;
+        --accent: #6c5ce7;
+        --active: #00e676;
+        --head: #ffd600;
+        --border: #1e2a45;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--txt);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 14px 12px 30px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2px;
+      }
+      .sub {
+        color: #636e84;
+        font-size: 0.82rem;
+        margin-bottom: 12px;
+      }
+      .container {
+        width: 100%;
+        max-width: 960px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .graph-panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+      }
+      .graph-panel h3 {
+        font-size: 0.75rem;
+        color: #636e84;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+      svg#graph {
+        display: block;
+        width: 100%;
+        max-height: 300px;
+        background: #0d1220;
+        border-radius: 10px;
+      }
+
+      .node-circle {
+        fill: #1a2340;
+        stroke: #3a4a6b;
+        stroke-width: 2.5;
+        transition: all 0.3s;
+      }
+      .node-circle.active {
+        fill: rgba(0, 230, 118, 0.12);
+        stroke: var(--active);
+        stroke-width: 3;
+        filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.5));
+      }
+      .node-label {
+        fill: #e0e0e0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+      }
+      .edge-line {
+        stroke: #2a3655;
+        stroke-width: 2;
+        fill: none;
+        transition:
+          stroke 0.25s,
+          stroke-width 0.25s;
+      }
+      .edge-line.active {
+        stroke: var(--active);
+        stroke-width: 3;
+      }
+      .edge-label {
+        fill: #7a8aa5;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        pointer-events: none;
+        transition: fill 0.25s;
+      }
+      .edge-label.active {
+        fill: var(--active);
+        font-weight: 700;
+      }
+      .lbl-bg {
+        fill: #0d1220;
+        opacity: 0.85;
+      }
+
+      @keyframes loopPulse {
+        0%,
+        100% {
+          stroke-opacity: 1;
+          stroke-width: 3;
+        }
+        50% {
+          stroke-opacity: 0.3;
+          stroke-width: 4.5;
+        }
+      }
+      @keyframes labelPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+      .edge-line.active.self-loop {
+        animation: loopPulse 0.6s ease-in-out infinite;
+      }
+      .edge-label.active.self-loop-label {
+        animation: labelPulse 0.6s ease-in-out infinite;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button {
+        font-family: "Inter", sans-serif;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 7px 16px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          transform 0.1s;
+      }
+      button:hover {
+        background: #5a4bd1;
+        transform: translateY(-1px);
+      }
+      button:disabled {
+        background: #2a3450;
+        color: #555;
+        cursor: not-allowed;
+        transform: none;
+      }
+      #btn-pause {
+        background: #e74c3c;
+      }
+      #btn-pause:hover {
+        background: #c0392b;
+      }
+      #btn-reset {
+        background: #2d3a56;
+      }
+      #btn-reset:hover {
+        background: #3d4e6e;
+      }
+      .slider-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.75rem;
+        color: #636e84;
+      }
+      input[type="range"] {
+        accent-color: var(--accent);
+        width: 80px;
+      }
+
+      .status-bar {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+        padding: 6px 0 2px;
+      }
+      .status-bar span {
+        color: #636e84;
+      }
+      .status-bar .st {
+        color: var(--active);
+      }
+      .status-bar .sp {
+        color: var(--head);
+      }
+
+      .tape-section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .tape-section h3 {
+        font-size: 0.7rem;
+        color: #636e84;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+      }
+      .tape-scroll {
+        display: flex;
+        justify-content: center;
+      }
+      .tape {
+        display: flex;
+        gap: 4px;
+      }
+      .cell {
+        width: 36px;
+        height: 36px;
+        background: #0d1220;
+        border: 2px solid #1e2a45;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+        font-weight: 700;
+        color: #8899aa;
+        position: relative;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .cell.active {
+        border-color: var(--head);
+        background: rgba(255, 214, 0, 0.08);
+        box-shadow: 0 0 10px rgba(255, 214, 0, 0.3);
+        color: #fff;
+      }
+      .cell.active::after {
+        content: "▲";
+        position: absolute;
+        bottom: -16px;
+        color: var(--head);
+        font-size: 10px;
+      }
+
+      .table-panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .table-panel h3 {
+        font-size: 0.7rem;
+        color: #636e84;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1rem;
+      }
+      th,
+      td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      th {
+        color: #4a5568;
+        font-weight: 600;
+        text-align: left;
+      }
+      td {
+        color: #8899aa;
+      }
+      tr.active td {
+        color: var(--active);
+        font-weight: 700;
+        background: rgba(0, 230, 118, 0.06);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Máquina de Turing Animada</h1>
+    <p class="sub">Algoritmo de Generación de Contador Binario Infinito</p>
+    <div class="container">
+      <div class="graph-panel">
+        <h3>Grafo de Transiciones</h3>
+        <svg id="graph" viewBox="0 0 640 230">
+          <defs>
+            <marker
+              id="arr"
+              viewBox="0 0 10 10"
+              refX="10"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 1.5L10 5L0 8.5z" fill="#3a4a6b" />
+            </marker>
+            <marker
+              id="arr-a"
+              viewBox="0 0 10 10"
+              refX="10"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M0 1.5L10 5L0 8.5z" fill="#00e676" />
+            </marker>
+          </defs>
+          <!-- q0(60,115) q1(185,115) q2(310,115) q3(490,50) q4(490,180) r=18 -->
+
+          <!-- q0→q1 -->
+          <line
+            x1="78"
+            y1="115"
+            x2="167"
+            y2="115"
+            class="edge-line"
+            id="edge-q0-q1"
+            marker-end="url(#arr)"
+          />
+          <rect x="100" y="97" width="45" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="122"
+            y="107"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q0-q1"
+          >
+            #/0, _
+          </text>
+
+          <!-- q1→q2 -->
+          <line
+            x1="203"
+            y1="115"
+            x2="292"
+            y2="115"
+            class="edge-line"
+            id="edge-q1-q2"
+            marker-end="url(#arr)"
+          />
+          <rect x="225" y="97" width="45" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="247"
+            y="107"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q1-q2"
+          >
+            0/1, _
+          </text>
+
+          <!-- q2→q3 -->
+          <path
+            d="M325 102 Q400 30 473 47"
+            class="edge-line"
+            id="edge-q2-q3"
+            marker-end="url(#arr)"
+          />
+          <rect x="370" y="38" width="42" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="391"
+            y="48"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q2-q3"
+          >
+            1/0, I
+          </text>
+
+          <!-- q2→q4 -->
+          <path
+            d="M325 129 Q400 100 473 183"
+            class="edge-line"
+            id="edge-q2-q4"
+            marker-end="url(#arr)"
+          />
+          <rect x="399" y="119" width="42" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="420"
+            y="124"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q2-q4"
+          >
+            0/1, _
+          </text>
+
+          <!-- q3→q4 -->
+          <line
+            x1="490"
+            y1="68"
+            x2="490"
+            y2="162"
+            class="edge-line"
+            id="edge-q3-q4"
+            marker-end="url(#arr)"
+          />
+          <rect x="496" y="108" width="55" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="523"
+            y="118"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q3-q4"
+          >
+            0,#/1, _
+          </text>
+
+          <!-- q4→q2 -->
+          <path
+            d="M473 192 Q385 225 322 130"
+            class="edge-line"
+            id="edge-q4-q2"
+            marker-end="url(#arr)"
+          />
+          <rect x="370" y="207" width="42" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="391"
+            y="217"
+            class="edge-label"
+            text-anchor="middle"
+            id="elabel-q4-q2"
+          >
+            #/#, I
+          </text>
+
+          <!-- Self q3→q3 (right side) -->
+          <path
+            d="M505 40 C545 25 545 75 505 60"
+            class="edge-line self-loop"
+            id="edge-q3-q3"
+            marker-end="url(#arr)"
+          />
+          <rect x="547" y="39" width="42" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="568"
+            y="49"
+            class="edge-label self-loop-label"
+            text-anchor="middle"
+            id="elabel-q3-q3"
+          >
+            1/0, I
+          </text>
+
+          <!-- Self q4→q4 (right side) -->
+          <path
+            d="M505 170 C545 155 545 205 505 190"
+            class="edge-line self-loop"
+            id="edge-q4-q4"
+            marker-end="url(#arr)"
+          />
+          <rect x="547" y="172" width="50" height="13" rx="2" class="lbl-bg" />
+          <text
+            x="572"
+            y="182"
+            class="edge-label self-loop-label"
+            text-anchor="middle"
+            id="elabel-q4-q4"
+          >
+            0,1/_, D
+          </text>
+
+          <!-- Entry arrow -->
+          <line
+            x1="15"
+            y1="115"
+            x2="42"
+            y2="115"
+            stroke="#636e84"
+            stroke-width="2"
+            marker-end="url(#arr)"
+          />
+          <!-- Nodes -->
+          <circle cx="60" cy="115" r="18" class="node-circle" id="node-q0" />
+          <text x="60" y="115" class="node-label">q0</text>
+          <circle cx="185" cy="115" r="18" class="node-circle" id="node-q1" />
+          <text x="185" y="115" class="node-label">q1</text>
+          <circle cx="310" cy="115" r="18" class="node-circle" id="node-q2" />
+          <text x="310" y="115" class="node-label">q2</text>
+          <circle cx="490" cy="50" r="18" class="node-circle" id="node-q3" />
+          <text x="490" y="50" class="node-label">q3</text>
+          <circle cx="490" cy="180" r="18" class="node-circle" id="node-q4" />
+          <text x="490" y="180" class="node-label">q4</text>
+        </svg>
+      </div>
+
+      <div class="status-bar">
+        <span>Estado: <strong class="st" id="lbl-state">q0</strong></span>
+        <span>Pasos: <strong class="sp" id="lbl-steps">0</strong></span>
+      </div>
+      <div class="controls">
+        <button id="btn-step">⏭ Paso</button>
+        <button id="btn-play">▶ Auto</button>
+        <button id="btn-pause" style="display: none">⏸ Pausar</button>
+        <button id="btn-reset">↺ Reset</button>
+        <div class="slider-container">
+          <label for="speed">Vel:</label
+          ><input
+            type="range"
+            id="speed"
+            min="100"
+            max="1500"
+            value="600"
+            step="100"
+          />
+        </div>
+      </div>
+
+      <div class="tape-section">
+        <h3>Cinta</h3>
+        <div class="tape-scroll">
+          <div class="tape" id="tape-wrapper"></div>
+        </div>
+      </div>
+
+      <div class="table-panel">
+        <h3>Tabla de Transiciones</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Origen</th>
+              <th>Lee</th>
+              <th>Escribe</th>
+              <th>Mueve</th>
+              <th>Destino</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      const transitions = [
+        { from: "q0", read: "#", write: "0", move: "_", to: "q1" },
+        { from: "q1", read: "0", write: "1", move: "_", to: "q2" },
+        { from: "q2", read: "1", write: "0", move: "I", to: "q3" },
+        { from: "q3", read: "1", write: "0", move: "I", to: "q3" },
+        { from: "q3", read: "0", write: "1", move: "_", to: "q4" },
+        { from: "q3", read: "#", write: "1", move: "_", to: "q4" },
+        { from: "q2", read: "0", write: "1", move: "_", to: "q4" },
+        { from: "q4", read: "0", write: "0", move: "D", to: "q4" },
+        { from: "q4", read: "1", write: "1", move: "D", to: "q4" },
+        { from: "q4", read: "#", write: "#", move: "I", to: "q2" },
+      ];
+      const edgeMap = {
+        "q0->q1": { edge: "edge-q0-q1", label: "elabel-q0-q1" },
+        "q1->q2": { edge: "edge-q1-q2", label: "elabel-q1-q2" },
+        "q2->q3": { edge: "edge-q2-q3", label: "elabel-q2-q3" },
+        "q2->q4": { edge: "edge-q2-q4", label: "elabel-q2-q4" },
+        "q3->q4": { edge: "edge-q3-q4", label: "elabel-q3-q4" },
+        "q4->q2": { edge: "edge-q4-q2", label: "elabel-q4-q2" },
+        "q3->q3": { edge: "edge-q3-q3", label: "elabel-q3-q3" },
+        "q4->q4": { edge: "edge-q4-q4", label: "elabel-q4-q4" },
+      };
+      let tape = ["#", "#", "#", "#", "#", "#", "#", "#", "#", "#", "#", "#"],
+        headIndex = 8,
+        currentState = "q0",
+        stepCount = 0,
+        runInterval = null;
+      const tbody = document.getElementById("table-body");
+      transitions.forEach((t, i) => {
+        const r = document.createElement("tr");
+        r.id = `tr-${i}`;
+        r.innerHTML = `<td>${t.from}</td><td>${t.read}</td><td>${t.write}</td><td>${t.move}</td><td>${t.to}</td>`;
+        tbody.appendChild(r);
+      });
+
+      function clearHL() {
+        document
+          .querySelectorAll(".node-circle")
+          .forEach((n) => n.classList.remove("active"));
+        document.querySelectorAll(".edge-line").forEach((e) => {
+          e.classList.remove("active");
+          e.setAttribute("marker-end", "url(#arr)");
+        });
+        document
+          .querySelectorAll(".edge-label")
+          .forEach((l) => l.classList.remove("active"));
+        document
+          .querySelectorAll("#table-body tr")
+          .forEach((r) => r.classList.remove("active"));
+      }
+      function renderTape() {
+        const w = document.getElementById("tape-wrapper");
+        w.innerHTML = "";
+        tape.forEach((v, i) => {
+          const c = document.createElement("div");
+          c.className = "cell" + (i === headIndex ? " active" : "");
+          c.textContent = v;
+          w.appendChild(c);
+          if (i === headIndex)
+            requestAnimationFrame(() =>
+              c.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+                inline: "center",
+              }),
+            );
+        });
+        document.getElementById("lbl-state").textContent = currentState;
+        document.getElementById("lbl-steps").textContent = stepCount;
+        const an = document.getElementById("node-" + currentState);
+        if (an) an.classList.add("active");
+      }
+      function executeStep() {
+        const sym = tape[headIndex];
+        const ti = transitions.findIndex(
+          (t) => t.from === currentState && t.read === sym,
+        );
+        if (ti === -1) {
+          pause();
+          alert(
+            `Máquina parada: No hay transición desde ${currentState} leyendo "${sym}"`,
+          );
+          return;
+        }
+        const rule = transitions[ti];
+        clearHL();
+        document.getElementById("tr-" + ti).classList.add("active");
+        const m = edgeMap[rule.from + "->" + rule.to];
+        if (m) {
+          const e = document.getElementById(m.edge),
+            l = document.getElementById(m.label);
+          if (e) {
+            e.classList.add("active");
+            e.setAttribute("marker-end", "url(#arr-a)");
+          }
+          if (l) l.classList.add("active");
+        }
+        tape[headIndex] = rule.write;
+        if (rule.move === "I") headIndex--;
+        else if (rule.move === "D") headIndex++;
+        if (headIndex < 0) {
+          tape.unshift("#");
+          headIndex = 1;
+        } else if (headIndex >= tape.length) tape.push("#");
+        currentState = rule.to;
+        stepCount++;
+        renderTape();
+      }
+      function play() {
+        document.getElementById("btn-play").style.display = "none";
+        document.getElementById("btn-pause").style.display = "inline-block";
+        document.getElementById("btn-step").disabled = true;
+        runInterval = setInterval(
+          executeStep,
+          1600 - document.getElementById("speed").value,
+        );
+      }
+      function pause() {
+        document.getElementById("btn-play").style.display = "inline-block";
+        document.getElementById("btn-pause").style.display = "none";
+        document.getElementById("btn-step").disabled = false;
+        clearInterval(runInterval);
+        runInterval = null;
+      }
+      function reset() {
+        pause();
+        clearHL();
+        tape = ["#", "#", "#", "#", "#"];
+        headIndex = 2;
+        currentState = "q0";
+        stepCount = 0;
+        renderTape();
+      }
+      document
+        .getElementById("btn-step")
+        .addEventListener("click", executeStep);
+      document.getElementById("btn-play").addEventListener("click", play);
+      document.getElementById("btn-pause").addEventListener("click", pause);
+      document.getElementById("btn-reset").addEventListener("click", reset);
+      document.getElementById("speed").addEventListener("input", () => {
+        if (runInterval) {
+          pause();
+          play();
+        }
+      });
+      renderTape();
+    </script>
+  </body>
+</html>
